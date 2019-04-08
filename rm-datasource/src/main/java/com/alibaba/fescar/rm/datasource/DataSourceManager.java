@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeoutException;
 
+import com.alibaba.druid.util.JdbcConstants;
 import com.alibaba.fescar.common.XID;
 import com.alibaba.fescar.common.exception.FrameworkException;
 import com.alibaba.fescar.common.exception.NotSupportYetException;
@@ -46,6 +47,7 @@ import com.alibaba.fescar.discovery.registry.RegistryFactory;
 import com.alibaba.fescar.rm.AbstractResourceManager;
 import com.alibaba.fescar.rm.datasource.undo.UndoLogManager;
 
+import com.alibaba.fescar.rm.datasource.undo.UndoLogManagerOracle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -204,7 +206,11 @@ public class DataSourceManager extends AbstractResourceManager implements Initia
             throw new ShouldNeverHappenException();
         }
         try {
-            UndoLogManager.undo(dataSourceProxy, xid, branchId);
+            if(JdbcConstants.ORACLE.equalsIgnoreCase(dataSourceProxy.getDbType())) {
+                UndoLogManagerOracle.undo(dataSourceProxy, xid, branchId);
+            } else {
+                UndoLogManager.undo(dataSourceProxy, xid, branchId);
+            }
         } catch (TransactionException te) {
             if (te.getCode() == TransactionExceptionCode.BranchRollbackFailed_Unretriable) {
                 return BranchStatus.PhaseTwo_RollbackFailed_Unretryable;
